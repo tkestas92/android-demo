@@ -1,3 +1,4 @@
 **/redroid-data/
 *.apk
 .DS_Store
+.vscode/

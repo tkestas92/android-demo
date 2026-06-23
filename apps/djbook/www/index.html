@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no">
+  <title>DJ Book Demo</title>
+  <link href="main.css" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      min-height: 100%;
+      background: #111;
+    }
+    body.stream {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: auto;
+    }
+    .device-view {
+      margin: 0;
+      max-width: 100vw;
+      max-height: 92vh;
+    }
+    .device-view .video canvas,
+    .device-view .video video,
+    .device-view .touch-layer {
+      image-rendering: auto;
+    }
+    .demo-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: #ccc;
+      font: 16px/1.4 system-ui, sans-serif;
+    }
+  </style>
+  <script>
+    (function () {
+      var udid = 'redroid:5555';
+      var vw = window.innerWidth;
+      var vh = window.innerHeight;
+      var maxW = Math.min(420, Math.floor(vw * 0.36));
+      var maxH = Math.floor(maxW * (1600 / 720));
+      if (maxH > vh * 0.88) {
+        maxH = Math.floor(vh * 0.88);
+        maxW = Math.floor(maxH * (720 / 1600));
+      }
+      var settings = {
+        bitrate: 4000000,
+        maxFps: 30,
+        iFrameInterval: 1,
+        bounds: { width: maxW, height: maxH },
+        sendFrameMeta: false,
+        lockedVideoOrientation: -1,
+        displayId: 0,
+      };
+      var prefixes = ['WebCodecsPlayer', 'BroadwayDecoder', 'MsePlayer', 'TinyH264Player'];
+      var storageKeySuffix = udid + ':' + vw + 'x' + vh;
+      try {
+        prefixes.forEach(function (prefix) {
+          var key = prefix + ':' + storageKeySuffix;
+          localStorage.setItem(key, JSON.stringify(settings));
+          localStorage.setItem(key + ':fit', 'true');
+        });
+      } catch (e) {}
+
+      if (!location.hash || !location.hash.includes('action=stream')) {
+        fetch('/demo-reset', { method: 'POST', credentials: 'include' }).catch(function () {});
+        var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        var ws = proto + '//' + location.host + '/?action=proxy-adb&remote=tcp:8886&udid=redroid:5555';
+        location.replace('/#!' + new URLSearchParams({
+          action: 'stream',
+          udid: udid,
+          player: 'mse',
+          ws: ws,
+        }).toString());
+      }
+    })();
+  </script>
+  <script defer src="bundle.js"></script>
+</head>
+<body></body>
+</html>

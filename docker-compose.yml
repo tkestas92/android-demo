@@ -1,0 +1,25 @@
+services:
+  redroid:
+    image: redroid/redroid:13.0.0_64only-latest
+    container_name: redroid
+    privileged: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5555:5555"   # host-only — never expose this publicly
+    volumes:
+      - ./redroid-data:/data
+    command:
+      - androidboot.redroid_width=1080
+      - androidboot.redroid_height=2340
+      - androidboot.redroid_dpi=420
+      - androidboot.redroid_fps=30
+      - androidboot.redroid_gpu_mode=guest
+
+  ws-scrcpy:
+    image: ghostry/ws-scrcpy:latest
+    container_name: ws-scrcpy
+    restart: unless-stopped
+    depends_on:
+      - redroid
+    ports:
+      - "127.0.0.1:8000:8000"   # Caddy reverse-proxies to this, not exposed directly

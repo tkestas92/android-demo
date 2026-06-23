@@ -1,0 +1,79 @@
+demo-dishcovery.kantrybes.lt {
+    @websocket {
+        header Connection *Upgrade*
+        header Upgrade *websocket*
+    }
+    handle @websocket {
+        reverse_proxy 127.0.0.1:8001
+    }
+
+    handle /embed* {
+        header Content-Security-Policy "frame-ancestors 'self' https://www.kantrybes.lt https://kantrybes.lt"
+        uri strip_prefix /embed
+        reverse_proxy 127.0.0.1:8001
+    }
+
+    handle /demo-reset {
+        reverse_proxy 127.0.0.1:9003
+    }
+
+    handle {
+        basic_auth {
+            demo $2a$14$REPLACE_WITH_YOUR_OWN_HASH
+        }
+        reverse_proxy 127.0.0.1:8001
+    }
+}
+
+demo-djbook.kantrybes.lt {
+    @websocket {
+        header Connection *Upgrade*
+        header Upgrade *websocket*
+    }
+    handle @websocket {
+        reverse_proxy 127.0.0.1:8002
+    }
+
+    handle /embed* {
+        header Content-Security-Policy "frame-ancestors 'self' https://www.kantrybes.lt https://kantrybes.lt"
+        uri strip_prefix /embed
+        reverse_proxy 127.0.0.1:8002
+    }
+
+    handle /demo-reset {
+        reverse_proxy 127.0.0.1:9003
+    }
+
+    handle {
+        basic_auth {
+            demo $2a$14$REPLACE_WITH_YOUR_OWN_HASH
+        }
+        reverse_proxy 127.0.0.1:8002
+    }
+}
+
+http://135.181.39.195 {
+    @websocket {
+        header Connection *Upgrade*
+        header Upgrade *websocket*
+    }
+    handle @websocket {
+        reverse_proxy 127.0.0.1:8001
+    }
+
+    handle /embed* {
+        uri strip_prefix /embed
+        reverse_proxy 127.0.0.1:8001
+    }
+
+    handle /demo-reset {
+        reverse_proxy 127.0.0.1:9003
+    }
+
+    handle {
+        basic_auth {
+            demo $2a$14$REPLACE_WITH_YOUR_OWN_HASH
+        }
+        reverse_proxy 127.0.0.1:8001
+    }
+}

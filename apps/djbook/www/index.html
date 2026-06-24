@@ -29,13 +29,18 @@
     .device-view .touch-layer {
       image-rendering: auto;
     }
-    .demo-loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      color: #ccc;
-      font: 16px/1.4 system-ui, sans-serif;
+    body.stream .control-wrapper {
+      display: none !important;
+    }
+    body.stream .device-view {
+      max-width: 100%;
+      max-height: 100%;
+    }
+    body:not(.stream) .device-list {
+      display: none !important;
+    }
+    html.booting body {
+      background: #111 !important;
     }
   </style>
   <script>
@@ -68,8 +73,7 @@
         });
       } catch (e) {}
 
-      if (!location.hash || !location.hash.includes('action=stream')) {
-        fetch('/demo-reset', { method: 'POST', credentials: 'include' }).catch(function () {});
+      function startStream() {
         var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
         var ws = proto + '//' + location.host + '/?action=proxy-adb&remote=tcp:8886&udid=redroid:5555';
         location.replace('/#!' + new URLSearchParams({
@@ -78,6 +82,16 @@
           player: 'mse',
           ws: ws,
         }).toString());
+      }
+
+      if (!location.hash || !location.hash.includes('action=stream')) {
+        document.documentElement.classList.add('booting');
+        fetch('/demo-reset', { method: 'POST', credentials: 'include' })
+          .catch(function () {})
+          .finally(function () {
+            document.documentElement.classList.remove('booting');
+            startStream();
+          });
       }
     })();
   </script>

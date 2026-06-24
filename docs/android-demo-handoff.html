@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8">
+  <title>Android Browser Demo — Handoff</title>
+  <style>
+    @page { margin: 18mm 16mm; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #111;
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 { font-size: 20pt; margin: 0 0 8px; border-bottom: 2px solid #111; padding-bottom: 8px; }
+    h2 { font-size: 13pt; margin: 22px 0 8px; color: #222; page-break-after: avoid; }
+    h3 { font-size: 11pt; margin: 14px 0 6px; page-break-after: avoid; }
+    p, li { margin: 0 0 6px; }
+    ul { margin: 6px 0 10px 18px; padding: 0; }
+    table { border-collapse: collapse; width: 100%; margin: 8px 0 12px; font-size: 9.5pt; }
+    th, td { border: 1px solid #ccc; padding: 5px 7px; text-align: left; vertical-align: top; }
+    th { background: #f3f3f3; }
+    code, pre { font-family: Menlo, Monaco, monospace; font-size: 8.5pt; }
+    pre { background: #f6f6f6; border: 1px solid #ddd; padding: 10px; overflow-x: auto; white-space: pre-wrap; }
+    hr { border: none; border-top: 1px solid #ddd; margin: 18px 0; }
+    .meta { color: #555; font-size: 9.5pt; margin-bottom: 18px; }
+  </style>
+</head>
+<body>
+  <h1>Android Browser Demo — pilna santrauka</h1>
+  <p class="meta"><strong>Handoff dokumentas</strong> kitam AI / developeriui · 2026-06-23 · Kantrybės demo projektas</p>
+
+  <h2>1. Projekto tikslas</h2>
+  <p>Leisti lankytojams <strong>naršyklėje</strong> išbandyti Android aplikacijas (<strong>Dishcovery</strong>, <strong>DJ Book</strong>) be fizinio telefono — per <strong>redroid</strong> emuliatorių + <strong>ws-scrcpy</strong> stream'ą, hostinama <strong>Hetzner VPS</strong>, integruota į portfolio <strong>kantrybes.lt/dev</strong>.</p>
+
+  <h2>2. Infrastruktūra</h2>
+  <table>
+    <tr><th>Kas</th><th>Detalės</th></tr>
+    <tr><td>VPS</td><td>Hetzner CX23, Helsinki, IP 135.181.39.195, Ubuntu</td></tr>
+    <tr><td>SSH</td><td>root@135.181.39.195, raktas Mac ~/.ssh/id_ed25519</td></tr>
+    <tr><td>Serverio kelias</td><td>/opt/android-demo/</td></tr>
+    <tr><td>Reverse proxy</td><td>Caddy (/etc/caddy/Caddyfile)</td></tr>
+    <tr><td>Docker</td><td>2 atskiri stack'ai (Dishcovery + DJ Book)</td></tr>
+  </table>
+
+  <h3>URL'ai</h3>
+  <table>
+    <tr><th>App</th><th>URL</th><th>Portai (localhost)</th></tr>
+    <tr><td>Dishcovery</td><td>https://demo-dishcovery.kantrybes.lt</td><td>redroid 5555, ws-scrcpy 8001</td></tr>
+    <tr><td>DJ Book</td><td>https://demo-djbook.kantrybes.lt</td><td>redroid 5556, ws-scrcpy 8002</td></tr>
+    <tr><td>IP fallback</td><td>http://135.181.39.195</td><td>tik Dishcovery</td></tr>
+  </table>
+  <p><strong>Auth:</strong> demo / dishcovery2026 (tiesioginis apsilankymas)<br>
+  <strong>Embed:</strong> /embed/ — be auth (iframe iš portfolio)</p>
+
+  <h3>DNS</h3>
+  <ul>
+    <li>demo-dishcovery.kantrybes.lt → A → 135.181.39.195</li>
+    <li>demo-djbook.kantrybes.lt → A → 135.181.39.195</li>
+    <li>www.kantrybes.lt → Railway (portfolio), ne VPS</li>
+    <li>Buvo DNSSEC problemų domreg.lt — reikėjo išjungti Let's Encrypt'ui</li>
+  </ul>
+
+  <h2>3. Repo struktūra</h2>
+  <p><strong>GitHub:</strong> github.com/tkestas92/android-demo</p>
+  <pre>android-demo/
+├── apps/dishcovery/     # docker-compose, scripts, www/index.html
+├── apps/djbook/
+├── Caddyfile
+├── demo-reset-server.py # :9003
+├── demo-reset.service
+├── watch-adb.sh
+└── agent-prompt.md</pre>
+  <p><strong>Portfolio:</strong> github.com/tkestas92/kantrybes — LiveDemoModal.tsx, lib/liveDemo.ts</p>
+
+  <h2>4. Demo stack'as (vienas app)</h2>
+  <h3>docker-compose.yml</h3>
+  <ul>
+    <li><strong>redroid</strong> — Android 13 x86_64, 720×1600, DPI 280, Pixel 9 props, ./redroid-data:/data</li>
+    <li><strong>ws-scrcpy</strong> — ghostry/ws-scrcpy, custom index.html mount</li>
+  </ul>
+  <h3>ADB</h3>
+  <ul>
+    <li>connect-adb.sh: adb connect redroid:5555</li>
+    <li>watch-adb.sh kas 3 min (cron) + @reboot start-demo.sh</li>
+  </ul>
+  <h3>index.html</h3>
+  <ul>
+    <li>Auto stream redirect (#!action=stream, player=mse)</li>
+    <li>POST /demo-reset fone (sesijos valymas)</li>
+    <li>Redirect iškart — ne laukiant reset (kitaip rodo device list)</li>
+  </ul>
+  <h3>Sesijos reset</h3>
+  <p>pm clear + app restart → login. demo-reset-server.py pagal Host header.</p>
+
+  <h2>5. Caddy routing</h2>
+  <ol>
+    <li>WebSocket → ws-scrcpy be auth</li>
+    <li>/embed* → be auth, CSP frame-ancestors kantrybes.lt</li>
+    <li>/demo-reset → Python :9003</li>
+    <li>Kita → basic auth</li>
+  </ol>
+
+  <h2>6. Portfolio (kantrybes.lt/dev)</h2>
+  <ul>
+    <li>DB: live_type ENUM('web','app')</li>
+    <li>Live app → telefono modalas + /embed/</li>
+    <li>Live web → platus modalas, pilnas URL</li>
+    <li>DJBook + Dishcovery = app; Steam AI ir kt. = web</li>
+  </ul>
+
+  <h2>7. APK info</h2>
+  <table>
+    <tr><th>App</th><th>Package</th></tr>
+    <tr><td>Dishcovery</td><td>com.dishcovery.app</td></tr>
+    <tr><td>DJ Book</td><td>com.tkestas92.djbookmobilev2</td></tr>
+  </table>
+  <p>DJ Book backend: djbook-backend-production.up.railway.app</p>
+
+  <h2>8. Žinomos problemos</h2>
+  <ul>
+    <li><strong>Foto DJ Book:</strong> Railway uploads ephemeral → 404. Fix: Volume arba S3.</li>
+    <li><strong>Shared session:</strong> vienas redroid visiems lankytojams; reset ant naujo visit.</li>
+    <li><strong>ADB:</strong> atsijungia po restart — watchdog taiso.</li>
+  </ul>
+
+  <h2>9. Cron</h2>
+  <pre>@reboot sleep 45 && .../dishcovery/start-demo.sh
+@reboot sleep 60 && .../djbook/start-demo.sh
+*/3 * * * * /opt/android-demo/watch-adb.sh</pre>
+
+  <h2>10. VPS komandos</h2>
+  <pre>docker ps | grep -E 'dishcovery|djbook'
+docker exec ws-scrcpy-djbook adb devices
+/opt/android-demo/apps/djbook/connect-adb.sh
+systemctl reload caddy</pre>
+
+  <h2>11. Chronologija</h2>
+  <p>Deploy → SSH fix → subdomains → DJ Book → MSE player → session reset → ADB watchdog → embed modal → live_type app/web → git push.</p>
+
+  <h2>12. Deploy map</h2>
+  <table>
+    <tr><th>Kas</th><th>Kur</th></tr>
+    <tr><td>android-demo</td><td>VPS /opt/android-demo/</td></tr>
+    <tr><td>Caddy</td><td>/etc/caddy/Caddyfile</td></tr>
+    <tr><td>Portfolio</td><td>Git → Railway</td></tr>
+    <tr><td>APK</td><td>Rankiniu būdu ant serverio</td></tr>
+  </table>
+</body>
+</html>

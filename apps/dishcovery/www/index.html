@@ -29,13 +29,12 @@
     .device-view .touch-layer {
       image-rendering: auto;
     }
-    .demo-loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      color: #ccc;
-      font: 16px/1.4 system-ui, sans-serif;
+    body.stream .control-wrapper {
+      display: none !important;
+    }
+    body.stream .device-view {
+      max-width: 100%;
+      max-height: 100%;
     }
   </style>
   <script>

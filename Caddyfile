@@ -1,3 +1,26 @@
+http://135.181.39.195 {
+    @websocket {
+        header Connection *Upgrade*
+        header Upgrade *websocket*
+    }
+    handle @websocket {
+        reverse_proxy 127.0.0.1:8001
+    }
+
+    handle /embed* {
+        uri strip_prefix /embed
+        reverse_proxy 127.0.0.1:8001
+    }
+
+    handle /demo-reset {
+        reverse_proxy 127.0.0.1:9003
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:8001
+    }
+}
+
 demo-dishcovery.kantrybes.lt {
     @websocket {
         header Connection *Upgrade*
@@ -18,9 +41,6 @@ demo-dishcovery.kantrybes.lt {
     }
 
     handle {
-        basic_auth {
-            demo $2a$14$REPLACE_WITH_YOUR_OWN_HASH
-        }
         reverse_proxy 127.0.0.1:8001
     }
 }
@@ -45,35 +65,32 @@ demo-djbook.kantrybes.lt {
     }
 
     handle {
-        basic_auth {
-            demo $2a$14$REPLACE_WITH_YOUR_OWN_HASH
-        }
         reverse_proxy 127.0.0.1:8002
     }
 }
 
-http://135.181.39.195 {
-    @websocket {
-        header Connection *Upgrade*
-        header Upgrade *websocket*
+demo-steam.kantrybes.lt {
+    reverse_proxy https://steam-recommender-web-production.up.railway.app {
+        header_up Host steam-recommender-web-production.up.railway.app
     }
-    handle @websocket {
-        reverse_proxy 127.0.0.1:8001
+}
+
+kantrybes.lt {
+    redir https://www.kantrybes.lt{uri} permanent
+}
+
+demo-souvenir.kantrybes.lt {
+    handle /query* {
+        reverse_proxy 127.0.0.1:8004
     }
 
     handle /embed* {
+        header Content-Security-Policy "frame-ancestors 'self' https://www.kantrybes.lt https://kantrybes.lt"
         uri strip_prefix /embed
-        reverse_proxy 127.0.0.1:8001
-    }
-
-    handle /demo-reset {
-        reverse_proxy 127.0.0.1:9003
+        reverse_proxy 127.0.0.1:8003
     }
 
     handle {
-        basic_auth {
-            demo $2a$14$REPLACE_WITH_YOUR_OWN_HASH
-        }
-        reverse_proxy 127.0.0.1:8001
+        reverse_proxy 127.0.0.1:8003
     }
 }

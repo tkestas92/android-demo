@@ -17,4 +17,11 @@ done
 
 "${ADB[@]}" shell pm clear "$PKG" >/dev/null 2>&1
 sleep 2
-launch_djbook_app
+launch_djbook_app || true
+for i in $(seq 1 30); do
+  if "${ADB[@]}" shell dumpsys window 2>/dev/null | grep -q "mCurrentFocus=.*$PKG"; then
+    break
+  fi
+  sleep 0.5
+done
+sleep 1.5

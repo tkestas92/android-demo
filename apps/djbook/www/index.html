@@ -39,9 +39,20 @@
     body:not(.stream) .device-list {
       display: none !important;
     }
-    html.booting body {
-      background: #111 !important;
+    html.booting::before {
+      content: 'Paleidžiama demo…';
+      position: fixed; inset: 0; z-index: 2147483647;
+      display: flex; align-items: center; justify-content: center;
+      padding-top: 60px; box-sizing: border-box;
+      background: #111; color: #aaa; font: 14px/1.4 -apple-system, system-ui, sans-serif;
     }
+    html.booting::after {
+      content: ''; position: fixed; z-index: 2147483647;
+      left: 50%; top: 50%; width: 32px; height: 32px; margin: -40px 0 0 -16px;
+      border-radius: 50%; border: 3px solid #333; border-top-color: #ddd;
+      animation: demo-spin .8s linear infinite;
+    }
+    @keyframes demo-spin { to { transform: rotate(360deg); } }
   </style>
   <script>
     (function () {
@@ -89,8 +100,10 @@
         fetch('/demo-reset', { method: 'POST', credentials: 'include' })
           .catch(function () {})
           .finally(function () {
-            document.documentElement.classList.remove('booting');
             startStream();
+            setTimeout(function () {
+              document.documentElement.classList.remove('booting');
+            }, 1200);
           });
       }
     })();

@@ -15,4 +15,11 @@ done
 
 $ADB shell pm clear "$PKG" >/dev/null 2>&1
 sleep 2
-$ADB shell am start -n "$PKG/.MainActivity" >/dev/null 2>&1
+$ADB shell am start -W -n "$PKG/.MainActivity" >/dev/null 2>&1
+for i in $(seq 1 30); do
+  if $ADB shell dumpsys window 2>/dev/null | grep -q "mCurrentFocus=.*$PKG"; then
+    break
+  fi
+  sleep 0.5
+done
+sleep 1.5

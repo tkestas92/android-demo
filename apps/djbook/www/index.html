@@ -65,11 +65,15 @@
         maxH = Math.floor(vh * 0.88);
         maxW = Math.floor(maxH * (720 / 1600));
       }
+      var dpr = window.devicePixelRatio || 1;
       var settings = {
         bitrate: 4000000,
         maxFps: 30,
-        iFrameInterval: 1,
-        bounds: { width: maxW, height: maxH },
+        iFrameInterval: 3,
+        bounds: {
+          width: Math.min(720, Math.round(maxW * dpr)),
+          height: Math.min(1600, Math.round(maxH * dpr)),
+        },
         sendFrameMeta: false,
         lockedVideoOrientation: -1,
         displayId: 0,

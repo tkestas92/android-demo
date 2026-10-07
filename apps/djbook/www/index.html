@@ -53,10 +53,14 @@
       animation: demo-spin .8s linear infinite;
     }
     @keyframes demo-spin { to { transform: rotate(360deg); } }
+    html.booting.busy::before {
+      content: 'Visi demo telefonai šiuo metu užimti. Bandome dar kartą…';
+      padding: 32px;
+      text-align: center;
+    }
   </style>
   <script>
     (function () {
-      var udid = 'redroid:5555';
       var vw = window.innerWidth;
       var vh = window.innerHeight;
       var maxW = Math.min(420, Math.floor(vw * 0.36));
@@ -66,49 +70,96 @@
         maxW = Math.floor(maxH * (720 / 1600));
       }
       var dpr = window.devicePixelRatio || 1;
-      var settings = {
-        bitrate: 4000000,
-        maxFps: 30,
-        iFrameInterval: 3,
-        bounds: {
-          width: Math.min(720, Math.round(maxW * dpr)),
-          height: Math.min(1600, Math.round(maxH * dpr)),
-        },
-        sendFrameMeta: false,
-        lockedVideoOrientation: -1,
-        displayId: 0,
-      };
       var prefixes = ['WebCodecsPlayer', 'BroadwayDecoder', 'MsePlayer', 'TinyH264Player'];
-      var storageKeySuffix = udid + ':' + vw + 'x' + vh;
-      try {
+
+      function writeSettings(udid) {
+        var settings = {
+          bitrate: 4000000,
+          maxFps: 30,
+          iFrameInterval: 3,
+          bounds: {
+            width: Math.min(720, Math.round(maxW * dpr)),
+            height: Math.min(1600, Math.round(maxH * dpr)),
+          },
+          sendFrameMeta: false,
+          lockedVideoOrientation: -1,
+          displayId: 0,
+        };
+        var storageKeySuffix = udid + ':' + vw + 'x' + vh;
         prefixes.forEach(function (prefix) {
           var key = prefix + ':' + storageKeySuffix;
           localStorage.setItem(key, JSON.stringify(settings));
           localStorage.setItem(key + ':fit', 'true');
         });
-      } catch (e) {}
+      }
 
-      function startStream() {
+      function startStream(udid) {
         var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        var ws = proto + '//' + location.host + '/?action=proxy-adb&remote=tcp:8886&udid=redroid:5555';
-        location.replace('/#!' + new URLSearchParams({
+        var ws = proto + '//' + location.host + '/?action=proxy-adb&remote=tcp:8886&udid=' + udid;
+        var next = '/#!' + new URLSearchParams({
           action: 'stream',
           udid: udid,
           player: 'mse',
           ws: ws,
-        }).toString());
+        }).toString();
+        location.replace(next);
+        if (location.pathname.indexOf('/embed') !== 0) {
+          location.reload();
+        }
       }
 
-      if (!location.hash || !location.hash.includes('action=stream')) {
+      function armLease(session) {
+        setInterval(function () {
+          fetch('/demo-heartbeat?session=' + encodeURIComponent(session), {
+            method: 'POST',
+            credentials: 'include',
+          }).catch(function () {});
+        }, 30000);
+        window.addEventListener('pagehide', function () {
+          navigator.sendBeacon('/demo-release?session=' + encodeURIComponent(session));
+        });
+      }
+
+      function requestSlot() {
         document.documentElement.classList.add('booting');
         fetch('/demo-reset', { method: 'POST', credentials: 'include' })
-          .catch(function () {})
-          .finally(function () {
-            startStream();
-            setTimeout(function () {
-              document.documentElement.classList.remove('booting');
-            }, 1200);
+          .then(function (res) {
+            if (res.status === 503) {
+              document.documentElement.classList.add('busy');
+              setTimeout(requestSlot, 15000);
+              return null;
+            }
+            document.documentElement.classList.remove('busy');
+            if (!res.ok) throw new Error('reset failed');
+            return res.json();
+          })
+          .then(function (data) {
+            if (!data || !data.udid || !data.session) return;
+            try {
+              sessionStorage.setItem('session', data.session);
+              sessionStorage.setItem('udid', data.udid);
+              writeSettings(data.udid);
+            } catch (e) {}
+            startStream(data.udid);
+          })
+          .catch(function () {
+            setTimeout(requestSlot, 15000);
           });
+      }
+
+      var session = null;
+      try {
+        session = sessionStorage.getItem('session');
+      } catch (e) {}
+
+      if (location.hash && location.hash.includes('action=stream') && session) {
+        document.documentElement.classList.add('booting');
+        armLease(session);
+        setTimeout(function () {
+          document.documentElement.classList.remove('booting');
+        }, 1200);
+      } else if (!location.hash || !location.hash.includes('action=stream')) {
+        requestSlot();
       }
     })();
   </script>

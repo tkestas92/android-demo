@@ -60,7 +60,8 @@ demo-djbook.kantrybes.lt {
         reverse_proxy 127.0.0.1:8002
     }
 
-    handle /demo-reset {
+    @demo_api path /demo-reset /demo-heartbeat /demo-release
+    handle @demo_api {
         reverse_proxy 127.0.0.1:9003
     }
 

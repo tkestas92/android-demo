@@ -19,6 +19,7 @@ services:
       - ro.product.device=tokay
       - ro.product.name=tokay
       - ro.build.product=tokay
+      - persist.sys.timezone=Europe/Vilnius
 
   redroid2:
     image: redroid/redroid:13.0.0_64only-latest
@@ -40,6 +41,7 @@ services:
       - ro.product.device=tokay
       - ro.product.name=tokay
       - ro.build.product=tokay
+      - persist.sys.timezone=Europe/Vilnius
 
   redroid3:
     image: redroid/redroid:13.0.0_64only-latest
@@ -61,6 +63,7 @@ services:
       - ro.product.device=tokay
       - ro.product.name=tokay
       - ro.build.product=tokay
+      - persist.sys.timezone=Europe/Vilnius
 
   ws-scrcpy:
     image: ghostry/ws-scrcpy:latest

@@ -8,20 +8,15 @@
 http://:8080 {
     bind 127.0.0.1
 
-    # Every WebSocket goes through the dispatcher first. Only the scrcpy
-    # stream of the visitor's own phone is allowed; ws-scrcpy's adb shell,
-    # devtools and file browser are refused here.
-    @websocket {
-        header Connection *Upgrade*
-        header Upgrade websocket
-    }
-    handle @websocket {
-        forward_auth 127.0.0.1:9003 {
-            uri /demo-auth
-            header_up -Connection
-            header_up -Upgrade
-        }
-        reverse_proxy 127.0.0.1:8002
+    # Any request carrying an Upgrade header (every WebSocket, whatever its
+    # spelling or path) is checked by the dispatcher before anything else
+    # runs. Only the scrcpy stream of the visitor's own phone is allowed;
+    # ws-scrcpy's adb shell, devtools and file browser are refused here.
+    @upgrade header Upgrade *
+    forward_auth @upgrade 127.0.0.1:9003 {
+        uri /demo-auth
+        header_up -Connection
+        header_up -Upgrade
     }
 
     handle /embed* {

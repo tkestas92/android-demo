@@ -4,6 +4,8 @@ services:
     container_name: redroid-djbook-1
     privileged: true
     restart: unless-stopped
+    networks: [demo]
+    dns: [1.1.1.1, 8.8.8.8]
     volumes:
       - ./redroid-data-1:/data
     command:
@@ -20,12 +22,18 @@ services:
       - ro.product.name=tokay
       - ro.build.product=tokay
       - persist.sys.timezone=Europe/Vilnius
+      # Public resolvers: the firewall blocks the home router (192.168.0.1)
+      - androidboot.redroid_net_ndns=2
+      - androidboot.redroid_net_dns1=1.1.1.1
+      - androidboot.redroid_net_dns2=8.8.8.8
 
   redroid2:
     image: redroid/redroid:13.0.0_64only-latest
     container_name: redroid-djbook-2
     privileged: true
     restart: unless-stopped
+    networks: [demo]
+    dns: [1.1.1.1, 8.8.8.8]
     volumes:
       - ./redroid-data-2:/data
     command:
@@ -42,12 +50,18 @@ services:
       - ro.product.name=tokay
       - ro.build.product=tokay
       - persist.sys.timezone=Europe/Vilnius
+      # Public resolvers: the firewall blocks the home router (192.168.0.1)
+      - androidboot.redroid_net_ndns=2
+      - androidboot.redroid_net_dns1=1.1.1.1
+      - androidboot.redroid_net_dns2=8.8.8.8
 
   redroid3:
     image: redroid/redroid:13.0.0_64only-latest
     container_name: redroid-djbook-3
     privileged: true
     restart: unless-stopped
+    networks: [demo]
+    dns: [1.1.1.1, 8.8.8.8]
     volumes:
       - ./redroid-data-3:/data
     command:
@@ -64,6 +78,10 @@ services:
       - ro.product.name=tokay
       - ro.build.product=tokay
       - persist.sys.timezone=Europe/Vilnius
+      # Public resolvers: the firewall blocks the home router (192.168.0.1)
+      - androidboot.redroid_net_ndns=2
+      - androidboot.redroid_net_dns1=1.1.1.1
+      - androidboot.redroid_net_dns2=8.8.8.8
 
   ws-scrcpy:
     image: ghostry/ws-scrcpy:latest
@@ -73,7 +91,16 @@ services:
       - redroid1
       - redroid2
       - redroid3
+    networks: [demo]
     volumes:
       - ./www/index.html:/ws-scrcpy/dist/public/index.html:ro
     ports:
       - "127.0.0.1:8002:8000"   # Caddy reverse-proxies to this, not exposed directly
+
+# Fixed subnet so deploy/demo-firewall.sh can keep the emulators off the home
+# LAN and the tailnet. They still reach the internet (DJ Book's API on Railway).
+networks:
+  demo:
+    ipam:
+      config:
+        - subnet: 172.31.80.0/24

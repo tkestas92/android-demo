@@ -1,0 +1,43 @@
+# /etc/caddy/Caddyfile on macserver (reference copy).
+# Caddy only listens on localhost; the public entry point is the Cloudflare
+# Tunnel route demo-djbook.kantrybes.lt -> http://localhost:8080.
+{
+    auto_https off
+}
+
+http://:8080 {
+    bind 127.0.0.1
+
+    # Every WebSocket goes through the dispatcher first. Only the scrcpy
+    # stream of the visitor's own phone is allowed; ws-scrcpy's adb shell,
+    # devtools and file browser are refused here.
+    @websocket {
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    handle @websocket {
+        forward_auth 127.0.0.1:9003 {
+            uri /demo-auth
+            header_up -Connection
+            header_up -Upgrade
+        }
+        reverse_proxy 127.0.0.1:8002
+    }
+
+    handle /embed* {
+        header Content-Security-Policy "frame-ancestors 'self' https://www.kantrybes.lt https://kantrybes.lt"
+        uri strip_prefix /embed
+        reverse_proxy 127.0.0.1:8002
+    }
+
+    @demo_api path /demo-reset /demo-heartbeat /demo-release
+    handle @demo_api {
+        reverse_proxy 127.0.0.1:9003
+    }
+
+    handle {
+        # /embed/ redirects the iframe to /, so / must allow the portfolio too
+        header Content-Security-Policy "frame-ancestors 'self' https://www.kantrybes.lt https://kantrybes.lt"
+        reverse_proxy 127.0.0.1:8002
+    }
+}

@@ -1,0 +1,22 @@
+[Unit]
+Description=Android demo slot dispatcher
+After=network.target docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -I /opt/android-demo/demo-reset-server.py
+Restart=always
+RestartSec=3
+# Needs the Docker socket (docker exec -> adb), so it runs as root; limit
+# everything else it could touch.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=full
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=Isolate Android demo emulators from the LAN
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/android-demo/deploy/demo-firewall.sh
+
+[Install]
+WantedBy=multi-user.target
